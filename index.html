@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CLOCKING</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #555;
+    --running: #4ade80;
+    --danger: #ff4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100dvh;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .logo {
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .total-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+  .total-badge span { color: var(--text); }
+
+  /* ── Project Selector ── */
+  .project-bar {
+    padding: 16px 20px 0;
+  }
+  .project-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .project-row {
+    display: flex;
+    gap: 8px;
+  }
+  .project-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    outline: none;
+    border-radius: 0;
+    transition: border-color .2s;
+  }
+  .project-input:focus { border-color: var(--accent); }
+  .project-input::placeholder { color: var(--muted); }
+
+  .btn-add-project {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 22px;
+    width: 44px;
+    cursor: pointer;
+    transition: background .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-add-project:active { background: var(--surface2); }
+
+  /* ── Active Timer Block ── */
+  .timer-block {
+    margin: 20px 20px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .timer-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .3s ease;
+  }
+  .timer-block.running::before { transform: scaleX(1); }
+  .timer-block.running { border-color: #3a3a2a; }
+
+  .timer-project-name {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    min-height: 18px;
+  }
+  .timer-project-name.active-name { color: var(--accent); }
+
+  .timer-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 58px;
+    letter-spacing: -2px;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 4px;
+    transition: color .3s;
+  }
+  .timer-display.running { color: var(--running); }
+
+  .timer-since {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    min-height: 16px;
+  }
+
+  .timer-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .btn-start {
+    flex: 1;
+    background: var(--accent);
+    color: #0e0e0e;
+    border: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 16px;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    position: relative;
+  }
+  .btn-start:active { transform: scale(.98); opacity: .9; }
+  .btn-start.running {
+    background: var(--danger);
+    color: #fff;
+  }
+
+  .btn-discard {
+    width: 52px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-discard:active { border-color: var(--danger); color: var(--danger); }
+  .btn-discard.hidden { opacity: 0; pointer-events: none; }
+
+  /* ── Note input (shows when running) ── */
+  .note-row {
+    margin-top: 10px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .note-row.visible { max-height: 60px; }
+  .note-input {
+    width: 100%;
+    background: var(--surface2);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    outline: none;
+  }
+  .note-input::placeholder { color: #333; }
+  .note-input:focus { color: var(--text); }
+
+  /* ── Section: Logs ── */
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 20px 10px;
+  }
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .btn-clear-all {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--danger);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    opacity: .6;
+    text-transform: uppercase;
+  }
+  .btn-clear-all:active { opacity: 1; }
+
+  /* ── Log Entry ── */
+  .log-list { padding: 0 20px 100px; }
+
+  .log-entry {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    background: var(--surface);
+    animation: slideIn .2s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-color-bar {
+    width: 4px;
+    flex-shrink: 0;
+  }
+
+  .log-body {
+    flex: 1;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+  .log-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .log-project {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .log-duration {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+    letter-spacing: -1px;
+  }
+  .log-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+  .log-note {
+    font-size: 13px;
+    color: #888;
+    margin-top: 5px;
+    font-style: italic;
+  }
+
+  .log-delete {
+    width: 44px;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    color: var(--border);
+    cursor: pointer;
+    font-size: 16px;
+    transition: color .15s, background .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .log-delete:active { color: var(--danger); background: #1a1010; }
+
+  /* ── Project Summary Pills ── */
+  .summary-bar {
+    padding: 0 20px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .summary-pill {
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .pill-project { color: var(--muted); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+  .pill-hours { font-family: 'Share Tech Mono', monospace; color: var(--accent2); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    line-height: 2;
+  }
+  .empty-state .big { font-size: 40px; display: block; margin-bottom: 10px; color: #222; }
+
+  /* ── Pulse animation for running timer ── */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .6; }
+  }
+  .pulse { animation: pulse 1.4s ease-in-out infinite; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #0e0e0e;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    letter-spacing: 3px;
+    font-weight: 700;
+    padding: 12px 24px;
+    text-transform: uppercase;
+    transition: transform .3s ease;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CLOCKING</div>
+  <div class="total-badge">TOTAL <span id="grand-total">0h 00m</span></div>
+</header>
+
+<div class="project-bar">
+  <div class="project-label">Proyecto</div>
+  <div class="project-row">
+    <input type="text" class="project-input" id="project-input" placeholder="Nombre del proyecto…" autocomplete="off" spellcheck="false">
+    <button class="btn-add-project" id="btn-quick-pick" title="Elegir proyecto reciente">☰</button>
+  </div>
+</div>
+
+<!-- Quick project picker (hidden by default) -->
+<div id="quick-picker" style="display:none; padding:0 20px; margin-top:8px;">
+</div>
+
+<div class="timer-block" id="timer-block">
+  <div class="timer-project-name" id="timer-proj-name">—</div>
+  <div class="timer-display" id="timer-display">00:00:00</div>
+  <div class="timer-since" id="timer-since"></div>
+  <div class="timer-controls">
+    <button class="btn-start" id="btn-start">START</button>
+    <button class="btn-discard hidden" id="btn-discard" title="Descartar">✕</button>
+  </div>
+  <div class="note-row" id="note-row">
+    <input type="text" class="note-input" id="note-input" placeholder="Nota opcional…" autocomplete="off">
+  </div>
+</div>
+
+<!-- Summary pills -->
+<div class="summary-bar" id="summary-bar"></div>
+
+<div class="section-head">
+  <div class="section-title">Registros</div>
+  <button class="btn-clear-all" id="btn-clear-all">Borrar todo</button>
+</div>
+
+<div class="log-list" id="log-list"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const COLORS = ['#e8ff47','#ff6b35','#4ade80','#60a5fa','#f472b6','#a78bfa','#fb923c','#34d399'];
+const projectColors = {};
+let colorIndex = 0;
+
+function getColor(project) {
+  if (!projectColors[project]) {
+    projectColors[project] = COLORS[colorIndex % COLORS.length];
+    colorIndex++;
+  }
+  return projectColors[project];
+}
+
+let timerInterval = null;
+let startTime = null;
+let isRunning = false;
+let currentProject = '';
+
+// Load logs from localStorage
+let logs = JSON.parse(localStorage.getItem('clocking_logs') || '[]');
+// Re-assign colors for existing projects
+logs.forEach(l => getColor(l.project));
+
+// Check if there was a running session (crash/reload recovery)
+const savedSession = JSON.parse(localStorage.getItem('clocking_session') || 'null');
+if (savedSession) {
+  startTime = new Date(savedSession.startTime);
+  currentProject = savedSession.project;
+  isRunning = true;
+}
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const timerDisplay = document.getElementById('timer-display');
+const timerSince   = document.getElementById('timer-since');
+const timerProjName= document.getElementById('timer-proj-name');
+const timerBlock   = document.getElementById('timer-block');
+const btnStart     = document.getElementById('btn-start');
+const btnDiscard   = document.getElementById('btn-discard');
+const noteRow      = document.getElementById('note-row');
+const noteInput    = document.getElementById('note-input');
+const projectInput = document.getElementById('project-input');
+const logList      = document.getElementById('log-list');
+const grandTotal   = document.getElementById('grand-total');
+const summaryBar   = document.getElementById('summary-bar');
+const toastEl      = document.getElementById('toast');
+const quickPicker  = document.getElementById('quick-picker');
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function formatDuration(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatDurationShort(ms) {
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${String(m).padStart(2,'0')}m`;
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+}
+
+function formatDate(date) {
+  const today = new Date();
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
+  if (date.toDateString() === today.toDateString()) return 'HOY';
+  if (date.toDateString() === yesterday.toDateString()) return 'AYER';
+  return date.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit' });
+}
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+function saveLogs() {
+  localStorage.setItem('clocking_logs', JSON.stringify(logs));
+}
+
+// ── Timer tick ─────────────────────────────────────────────────────────────
+function tick() {
+  const elapsed = Date.now() - startTime.getTime();
+  timerDisplay.textContent = formatDuration(elapsed);
+}
+
+function startTimer() {
+  const project = projectInput.value.trim();
+  if (!project) {
+    projectInput.focus();
+    projectInput.style.borderColor = 'var(--danger)';
+    setTimeout(() => projectInput.style.borderColor = '', 800);
+    return;
+  }
+
+  currentProject = project;
+  startTime = new Date();
+  isRunning = true;
+
+  // Persist session (crash recovery)
+  localStorage.setItem('clocking_session', JSON.stringify({ startTime: startTime.toISOString(), project }));
+
+  getColor(project); // ensure color assigned
+
+  // UI
+  timerProjName.textContent = project.toUpperCase();
+  timerProjName.classList.add('active-name');
+  timerDisplay.classList.add('running', 'pulse');
+  timerBlock.classList.add('running');
+  btnStart.textContent = 'STOP';
+  btnStart.classList.add('running');
+  btnDiscard.classList.remove('hidden');
+  noteRow.classList.add('visible');
+  timerSince.textContent = `INICIO  ${formatTime(startTime)}`;
+
+  projectInput.disabled = true;
+  document.getElementById('btn-quick-pick').disabled = true;
+
+  timerInterval = setInterval(tick, 1000);
+  tick();
+}
+
+function stopTimer(discard = false) {
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  if (!discard) {
+    const endTime = new Date();
+    const ms = endTime - startTime;
+
+    if (ms < 5000) {
+      showToast('MUY CORTO — DESCARTADO');
+    } else {
+      const entry = {
+        id: Date.now(),
+        project: currentProject,
+        start: startTime.toISOString(),
+        end: endTime.toISOString(),
+        ms,
+        note: noteInput.value.trim()
+      };
+      logs.unshift(entry);
+      saveLogs();
+      showToast(`+${formatDurationShort(ms)} — ${currentProject.toUpperCase()}`);
+    }
+  }
+
+  // Clean session
+  localStorage.removeItem('clocking_session');
+  isRunning = false;
+  startTime = null;
+
+  // UI reset
+  timerDisplay.textContent = '00:00:00';
+  timerDisplay.classList.remove('running', 'pulse');
+  timerBlock.classList.remove('running');
+  timerProjName.textContent = '—';
+  timerProjName.classList.remove('active-name');
+  btnStart.textContent = 'START';
+  btnStart.classList.remove('running');
+  btnDiscard.classList.add('hidden');
+  noteRow.classList.remove('visible');
+  timerSince.textContent = '';
+  noteInput.value = '';
+  projectInput.disabled = false;
+  document.getElementById('btn-quick-pick').disabled = false;
+
+  renderLogs();
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderLogs() {
+  // Grand total
+  const totalMs = logs.reduce((acc, l) => acc + l.ms, 0);
+  const th = Math.floor(totalMs / 3600000);
+  const tm = Math.floor((totalMs % 3600000) / 60000);
+  grandTotal.textContent = `${th}h ${String(tm).padStart(2,'0')}m`;
+
+  // Project summary
+  const projTotals = {};
+  logs.forEach(l => {
+    projTotals[l.project] = (projTotals[l.project] || 0) + l.ms;
+  });
+  summaryBar.innerHTML = '';
+  Object.entries(projTotals).sort((a,b) => b[1]-a[1]).forEach(([proj, ms]) => {
+    const h = (ms / 3600000).toFixed(1);
+    const pill = document.createElement('div');
+    pill.className = 'summary-pill';
+    pill.style.borderLeftColor = getColor(proj);
+    pill.style.borderLeftWidth = '3px';
+    pill.innerHTML = `<span class="pill-project">${proj.toUpperCase()}</span><span class="pill-hours">${h}h</span>`;
+    summaryBar.appendChild(pill);
+  });
+
+  // Log entries
+  if (logs.length === 0) {
+    logList.innerHTML = `<div class="empty-state"><span class="big">◷</span>Sin registros aún.<br>Ingresá un proyecto y presioná START.</div>`;
+    return;
+  }
+
+  logList.innerHTML = '';
+  logs.forEach(entry => {
+    const start = new Date(entry.start);
+    const end   = new Date(entry.end);
+    const color = getColor(entry.project);
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `
+      <div class="log-color-bar" style="background:${color}"></div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="log-project">${entry.project.toUpperCase()}</div>
+          <div class="log-duration">${formatDuration(entry.ms)}</div>
+        </div>
+        <div class="log-meta">${formatDate(start)}  ·  ${formatTime(start)} → ${formatTime(end)}</div>
+        ${entry.note ? `<div class="log-note">${entry.note}</div>` : ''}
+      </div>
+      <button class="log-delete" data-id="${entry.id}">✕</button>
+    `;
+    logList.appendChild(div);
+  });
+
+  // Quick picker update
+  renderQuickPicker();
+}
+
+function renderQuickPicker() {
+  const projects = [...new Set(logs.map(l => l.project))].slice(0, 8);
+  if (projects.length === 0) { quickPicker.style.display = 'none'; return; }
+  quickPicker.innerHTML = '';
+  projects.forEach(p => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid ${getColor(p)};
+      color: var(--text); font-family: 'Barlow Condensed', sans-serif;
+      font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
+      padding: 8px 12px; cursor: pointer; margin-bottom: 5px; width: 100%;
+      text-align: left; transition: background .15s;
+    `;
+    btn.textContent = p;
+    btn.addEventListener('click', () => {
+      projectInput.value = p;
+      quickPicker.style.display = 'none';
+    });
+    quickPicker.appendChild(btn);
+  });
+}
+
+// ── Event Listeners ────────────────────────────────────────────────────────
+btnStart.addEventListener('click', () => {
+  if (isRunning) stopTimer(false);
+  else startTimer();
+});
+
+btnDiscard.addEventListener('click', () => {
+  if (confirm('¿Descartar el tiempo actual?')) stopTimer(true);
+});
+
+document.getElementById('btn-clear-all').addEventListener('click', () => {
+  if (logs.length === 0) return;
+  if (confirm('¿Borrar todos los registros?')) {
+    logs = [];
+    saveLogs();
+    renderLogs();
+    showToast('REGISTROS BORRADOS');
+  }
+});
+
+document.getElementById('btn-quick-pick').addEventListener('click', () => {
+  if (quickPicker.style.display === 'none' || !quickPicker.style.display) {
+    renderQuickPicker();
+    if ([...quickPicker.children].length > 0) {
+      quickPicker.style.display = 'block';
+    }
+  } else {
+    quickPicker.style.display = 'none';
+  }
+});
+
+logList.addEventListener('click', e => {
+  const btn = e.target.closest('.log-delete');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  logs = logs.filter(l => l.id !== id);
+  saveLogs();
+  renderLogs();
+  showToast('REGISTRO ELIMINADO');
+});
+
+// Allow Enter key to start timer
+projectInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !isRunning) startTimer();
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+if (isRunning && startTime) {
+  // Restore running session
+  projectInput.value = currentProject;
+  timerProjName.textContent = currentProject.toUpperCase();
+  timerProjName.classList.add('active-name');
+  timerDisplay.classList.add('running', 'pulse');
+  timerBlock.classList.add('running');
+  btnStart.textContent = 'STOP';
+  btnStart.classList.add('running');
+  btnDiscard.classList.remove('hidden');
+  noteRow.classList.add('visible');
+  timerSince.textContent = `INICIO  ${formatTime(startTime)}`;
+  projectInput.disabled = true;
+  document.getElementById('btn-quick-pick').disabled = true;
+  timerInterval = setInterval(tick, 1000);
+  tick();
+}
+
+renderLogs();
+</script>
+</body>
+</html>
